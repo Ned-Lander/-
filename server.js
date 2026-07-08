@@ -230,13 +230,15 @@ app.get('/api/categories', (req, res) => res.json({ success: true, categories: r
 app.post('/api/request-chat', async (req, res) => {
     const { expertId, requesterId } = req.body;
     const usersDB = readData(USERS_FILE);
-    const expert = usersDB.find(u => u.id === expertId); 
+    const expert = usersDB.find(u => u.id === expertId);
     const requester = usersDB.find(u => u.userId === requesterId);
 
-    if (!expert || !requester) return res.json({ success: false, message: '사용자 정보를 찾을 수 없습니다.' });
+    if (!expert || !requester) {
+        return res.json({ success: false, message: '사용자 정보를 찾을 수 없습니다.' });
+    }
 
     const requesterName = requester.name;
-    
+
     const chatRoomId = `room_${Date.now()}`;
     const chatLink = `http://localhost:3000/chat.html?room=${chatRoomId}`;
 
@@ -246,16 +248,23 @@ app.post('/api/request-chat', async (req, res) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 type: 'chat',
-                expertEmail: expert.email, expertName: expert.name,
-                requesterEmail: requester.email, requesterName: requesterName,
+                expertEmail: expert.email,
+                expertName: expert.name,
+                requesterEmail: requester.email,
+                requesterName: requesterName,
                 chatLink: chatLink
             })
         });
+
         const result = await response.json();
-        if (result.success) res.json({ success: true, message: '채팅 참여 링크가 전송되었습니다.' });
-        else res.json({ success: false, message: '이메일 발송에 실패했습니다.' });
+        if (result.success) {
+            res.json({ success: true, message: '채팅 참여 링크가 전송되었습니다.' });
+        } else {
+            res.json({ success: false, message: '이메일 발송에 실패했습니다.' });
+        }
     } catch (error) {
-        res.json({ success: false, message: '메일 서버 오류' });
+        console.error("메일 전송 실패 상세 정보:", error);
+        res.json({ success: false, message: '메일 서버 오류: ' + error.message });
     }
 });
 
