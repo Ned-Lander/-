@@ -235,6 +235,8 @@ app.post('/api/request-chat', async (req, res) => {
 
     if (!expert || !requester) return res.json({ success: false, message: '사용자 정보를 찾을 수 없습니다.' });
 
+    const requesterName = requester.name;
+    
     const chatRoomId = `room_${Date.now()}`;
     const chatLink = `http://localhost:3000/chat.html?room=${chatRoomId}`;
 
