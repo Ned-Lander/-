@@ -149,7 +149,7 @@ app.post('/api/request-otp', async (req, res) => {
         console.error("메일 전송 실패 상세 정보:", error); 
         res.json({ success: false, message: '메일 서버 오류: ' + error.message });
     }
-});
+);
 
 app.post('/api/register', (req, res) => {
     const { userId, password, name, email, otp } = req.body;
@@ -177,7 +177,6 @@ app.post('/api/login', (req, res) => {
 });
 
 // [수정] 지원서 접수 시 AI 정규화 로직 적용
-// [수정] 아래 코드를 전체 선택해서 server.js의 기존 apply부터 request-chat까지 덮어쓰세요
 app.post('/api/apply', async (req, res) => {
     const { userId, region, categories, bio, experience } = req.body;
     const usersDB = readData(USERS_FILE);
@@ -186,8 +185,10 @@ app.post('/api/apply', async (req, res) => {
     const userIndex = usersDB.findIndex(u => u.userId === userId);
     if (userIndex === -1) return res.json({ success: false, message: '회원 정보를 찾을 수 없습니다.' });
 
+    // AI 정규화 실행
     const standardizedData = await standardizeWithAI(region, categories, categoriesDB);
 
+    // 정규화된 새로운 카테고리가 있다면 DB에 추가
     let categoriesChanged = false;
     standardizedData.categories.forEach(category => {
         if (!categoriesDB.includes(category) && category.trim() !== '') {
@@ -197,6 +198,7 @@ app.post('/api/apply', async (req, res) => {
     });
     if (categoriesChanged) writeData(CATEGORIES_FILE, categoriesDB);
 
+    // DB 업데이트
     usersDB[userIndex].is_expert = true;
     usersDB[userIndex].region = standardizedData.region;
     usersDB[userIndex].categories = standardizedData.categories.join(', ');
@@ -207,6 +209,23 @@ app.post('/api/apply', async (req, res) => {
     writeData(USERS_FILE, usersDB);
     res.json({ success: true, message: '전문가 정보가 성공적으로 등록되었습니다.', user: usersDB[userIndex] });
 });
+
+app.get('/api/search-experts', (req, res) => {
+    const { region, category, excludeUserId } = req.query;
+    const experts = readData(USERS_FILE).filter(u => 
+        u.is_expert && 
+        u.region === region && 
+        u.categories.includes(category) &&
+        u.userId !== excludeUserId
+    );
+    res.json({ success: true, experts });
+});
+
+app.get('/api/regions', (req, res) => {
+    const regions = [...new Set(readData(USERS_FILE).filter(u => u.is_expert && u.region !== 'N/A').map(u => u.region))];
+    res.json({ success: true, regions });
+});
+app.get('/api/categories', (req, res) => res.json({ success: true, categories: readData(CATEGORIES_FILE) }));
 
 app.post('/api/request-chat', async (req, res) => {
     const { expertId, requesterId } = req.body;
@@ -219,6 +238,7 @@ app.post('/api/request-chat', async (req, res) => {
     }
 
     const requesterName = requester.name;
+
     const chatRoomId = `room_${Date.now()}`;
     const chatLink = `http://localhost:3000/chat.html?room=${chatRoomId}`;
 
