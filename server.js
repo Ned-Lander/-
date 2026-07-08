@@ -144,8 +144,10 @@ app.post('/api/request-otp', async (req, res) => {
         const result = await response.json();
         if (result.success) res.json({ success: true, message: '인증번호가 이메일로 발송되었습니다.' });
         else res.json({ success: false, message: '메일 발송 실패' });
-    } catch (error) {
-        res.json({ success: false, message: '메일 발송 서버에 연결할 수 없습니다.' });
+    } } catch (error) {
+        // [수정] 상세 에러 로그를 콘솔에 출력하도록 변경
+        console.error("메일 전송 실패 상세 정보:", error); 
+        res.json({ success: false, message: '메일 서버 오류: ' + error.message });
     }
 });
 
