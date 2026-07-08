@@ -32,7 +32,7 @@ function initStorage() {
     if (!fs.existsSync(CATEGORIES_FILE)) fs.writeFileSync(CATEGORIES_FILE, JSON.stringify(['청소', '도배', '영어 과외', '수학 과외', '간판', '방충망']));
     if (!fs.existsSync(CHATS_FILE)) fs.writeFileSync(CHATS_FILE, JSON.stringify({}));
     
-    // [신규] 더미 데이터 자동 생성 로직
+    // 더미 데이터 자동 생성 로직
     const usersDB = readData(USERS_FILE);
     if (usersDB.length < 30) {
         const regions = ['서울특별시 강남구', '경기도 군포시', '경기도 수원시', '경기도 안양시'];
@@ -70,9 +70,8 @@ function writeData(filePath, data) {
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
 }
 
-// [신규] AI 데이터 정규화 헬퍼 함수
+// AI 데이터 정규화 헬퍼 함수
 async function standardizeWithAI(rawRegion, rawCategories, existingCategories) {
-    // API 키가 실제로 등록되어 있지 않다면 원본 데이터 반환 (에러 방지)
     if (!process.env.OPENAI_API_KEY) {
         return { region: rawRegion, categories: rawCategories };
     }
@@ -136,20 +135,25 @@ app.post('/api/request-otp', async (req, res) => {
     
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[email] = otp; 
+    
     try {
         const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' }, // [수정] 누락되었던 헤더 추가
             body: JSON.stringify({ type: 'otp', email, otp })
         });
+        
         const result = await response.json();
-        if (result.success) res.json({ success: true, message: '인증번호가 이메일로 발송되었습니다.' });
-        else res.json({ success: false, message: '메일 발송 실패' });
-    } } catch (error) {
-        // [수정] 상세 에러 로그를 콘솔에 출력하도록 변경
-        console.error("메일 전송 실패 상세 정보:", error); 
+        if (result.success) {
+            res.json({ success: true, message: '인증번호가 이메일로 발송되었습니다.' });
+        } else {
+            res.json({ success: false, message: '메일 발송 실패' });
+        }
+    } catch (error) {
+        console.error("OTP 메일 전송 실패 상세 정보:", error); 
         res.json({ success: false, message: '메일 서버 오류: ' + error.message });
     }
-);
+}); // [수정] 괄호 짝 정확히 교정 완료
 
 app.post('/api/register', (req, res) => {
     const { userId, password, name, email, otp } = req.body;
@@ -176,7 +180,6 @@ app.post('/api/login', (req, res) => {
     res.json({ success: true, user, message: '로그인에 성공했습니다.' });
 });
 
-// [수정] 지원서 접수 시 AI 정규화 로직 적용
 app.post('/api/apply', async (req, res) => {
     const { userId, region, categories, bio, experience } = req.body;
     const usersDB = readData(USERS_FILE);
@@ -185,10 +188,8 @@ app.post('/api/apply', async (req, res) => {
     const userIndex = usersDB.findIndex(u => u.userId === userId);
     if (userIndex === -1) return res.json({ success: false, message: '회원 정보를 찾을 수 없습니다.' });
 
-    // AI 정규화 실행
     const standardizedData = await standardizeWithAI(region, categories, categoriesDB);
 
-    // 정규화된 새로운 카테고리가 있다면 DB에 추가
     let categoriesChanged = false;
     standardizedData.categories.forEach(category => {
         if (!categoriesDB.includes(category) && category.trim() !== '') {
@@ -198,7 +199,6 @@ app.post('/api/apply', async (req, res) => {
     });
     if (categoriesChanged) writeData(CATEGORIES_FILE, categoriesDB);
 
-    // DB 업데이트
     usersDB[userIndex].is_expert = true;
     usersDB[userIndex].region = standardizedData.region;
     usersDB[userIndex].categories = standardizedData.categories.join(', ');
@@ -238,7 +238,6 @@ app.post('/api/request-chat', async (req, res) => {
     }
 
     const requesterName = requester.name;
-
     const chatRoomId = `room_${Date.now()}`;
     const chatLink = `http://localhost:3000/chat.html?room=${chatRoomId}`;
 
@@ -263,7 +262,7 @@ app.post('/api/request-chat', async (req, res) => {
             res.json({ success: false, message: '이메일 발송에 실패했습니다.' });
         }
     } catch (error) {
-        console.error("메일 전송 실패 상세 정보:", error);
+        console.error("채팅 메일 전송 실패 상세 정보:", error);
         res.json({ success: false, message: '메일 서버 오류: ' + error.message });
     }
 });
