@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>전문가 모여라 - 서비스 이용</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background-color: #f7f9fa; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 400px; text-align: center; }
+        .page { display: none; }
+        .active { display: block; }
+        .sub-auth-box { display: none; }
+        .sub-auth-box.show { display: block; }
+        input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; box-sizing: border-box; border-radius: 4px; }
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 15px; margin-top: 5px; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        button.secondary { background-color: #6c757d; }
+        button.success { background-color: #28a745; }
+        .toggle-link { color: #007bff; cursor: pointer; text-decoration: underline; font-size: 13px; display: inline-block; margin-top: 15px; }
+        .expert-card { border: 1px solid #e2e8f0; padding: 15px; margin: 15px 0; border-radius: 6px; text-align: left; background: #fff; }
+        .expert-card h4 { margin: 0 0 10px 0; color: #2d3748; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .expert-card p { margin: 5px 0; font-size: 14px; color: #4a5568; }
+        .btn-match { margin-top: 10px; background-color: #e53e3e; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>전문가 모여라</h2>
+    <p id="userStatus" style="color: #28a745; font-weight: bold; margin-bottom: 20px;"></p>
+
+    <div id="pageAuth" class="page active">
+        <div id="subLogin" class="sub-auth-box show">
+            <h3>로그인</h3>
+            <input type="text" id="loginId" placeholder="아이디">
+            <input type="password" id="loginPw" placeholder="비밀번호">
+            <button onclick="handleLogin()">로그인</button>
+            <span class="toggle-link" onclick="toggleAuthSubPage('register')">계정이 없으신가요? 회원가입</span>
+        </div>
+
+        <div id="subRegister" class="sub-auth-box">
+            <h3>회원가입</h3>
+            <input type="text" id="regId" placeholder="사용할 아이디">
+            <input type="password" id="regPw" placeholder="비밀번호">
+            <input type="text" id="regName" placeholder="이름(실명)"> <div style="display: flex; gap: 8px;">
+                <input type="email" id="regEmail" placeholder="이메일 주소" style="flex: 1;">
+                <button class="success" onclick="requestOTP()" style="width: 100px; padding: 10px; font-size: 13px;">인증 발송</button>
+            </div>
+            <input type="text" id="regOtp" placeholder="이메일로 받은 6자리 인증번호" style="display: none; border-color: #28a745;">
+            <button onclick="handleRegister()" style="margin-top: 15px;">가입 완료하기</button>
+            <span class="toggle-link" onclick="toggleAuthSubPage('login')">이미 계정이 있으신가요? 로그인</span>
+        </div>
+    </div>
+
+    <div id="pageSelect" class="page">
+        <h3>필요한 전문가 찾기</h3>
+        <label for="selectRegion" style="display:block; text-align:left;"><strong>1. 지역 선택 (ㅇㅇ시 단위)</strong></label>
+        <select id="selectRegion" onchange="checkSelection()"><option value="">-- 지역을 선택하세요 --</option></select>
+        <label for="selectCategory" style="display:block; text-align:left; margin-top:15px;"><strong>2. 전문 분야 카테고리 선택</strong></label>
+        <select id="selectCategory" onchange="checkSelection()"><option value="">-- 분야를 선택하세요 --</option></select>
+        <br><br>
+        <button id="btnSearch" onclick="searchExperts()" disabled>전문가 프로필 보기</button>
+        <br><button class="secondary" onclick="logout()" style="margin-top: 10px;">로그아웃</button>
+    </div>
+
+    <div id="pageResult" class="page">
+        <h3>매칭된 전문가 프로필</h3>
+        <div id="expertList" style="max-height: 400px; overflow-y: auto;"></div>
+        <br><button class="secondary" onclick="goBackToSelect()">다시 찾기</button>
+    </div>
+</div>
+<script src="service.js"></script>
+</body>
+</html>

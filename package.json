@@ -1,0 +1,14 @@
+{
+  "name": "expert-platform-prototype",
+  "version": "1.0.0",
+  "description": "전문가 모여라 서비스 프로토타입",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "xlsx": "^0.18.5"
+  }
+}

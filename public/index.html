@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>전문가 모여라 - 지원서 작성</title>
+    <style>
+        .step { display: none; margin: 20px; padding: 20px; border: 1px solid #ccc; }
+        .active { display: block; }
+        .warning { color: red; font-weight: bold; margin: 10px 0; }
+        .btn-add { background-color: #f0f0f0; border: 1px solid #999; padding: 5px; cursor: pointer; }
+        .hidden-block { display: none; }
+    </style>
+</head>
+<body>
+    <h2>전문가 지원 프로세스</h2>
+    
+    <div id="step1" class="step active">
+        <h3>1. 권한 확인</h3>
+        <div id="loginPromptBlock">
+            <p style="color: #e53e3e; font-weight: bold;">전문가 지원은 회원가입 및 로그인 후에만 가능합니다.</p>
+            <button onclick="goToServicePage()">회원가입 / 로그인 하러 가기</button>
+        </div>
+        <div id="loggedInBlock" style="display: none;">
+            <p><strong id="loggedInName"></strong>님, 전문가로 프로필을 등록(또는 수정)하시겠습니까?</p>
+            <button onclick="startApplication()">예, 진행합니다</button>
+        </div>
+    </div>
+
+    <div id="step2" class="step">
+        <h3>2. 활동 지역 정보</h3>
+        <div id="regionModifyBlock" class="hidden-block">
+            <p>기존 등록 지역: <strong id="currentRegionText"></strong></p>
+            <p>지역을 수정하시겠습니까?</p>
+            <button onclick="handleRegionModifyChoice(true)">예</button>
+            <button onclick="handleRegionModifyChoice(false)">아니오</button>
+        </div>
+        <div id="regionInputBlock" class="hidden-block">
+            <p>활동 지역을 입력하세요 (ㅇㅇ시 단위)</p>
+            <input type="text" id="inputRegion" placeholder="예: 수원시, 서울시 강남구">
+            <button onclick="nextStep(3)">다음</button>
+        </div>
+    </div>
+
+    <div id="step3" class="step">
+        <h3>3. 전문 분야 선택 및 등록</h3>
+        <div class="warning">⚠️ 경고: 한번 등록한 카테고리는 수정 및 삭제가 불가능합니다. 신중하게 선택해주세요.</div>
+        <p><strong>기존 카테고리 (복수 선택 가능)</strong></p>
+        <div id="categoryList"></div>
+        <p><strong>기타 분야 추가 (DB 자동 등록)</strong></p>
+        <div id="etcContainer">
+            <input type="text" class="etc-input" placeholder="기타 전문분야 입력"><br>
+        </div>
+        <button class="btn-add" onclick="addEtcField()">+ 카테고리 추가하기</button>
+        <br><br>
+        <button onclick="generateSummary()">다음 (추가 정보 입력)</button>
+    </div>
+
+    <div id="step4" class="step">
+        <h3>4. 추가 정보 입력 (선택사항)</h3>
+        <p>한 줄 소개</p>
+        <input type="text" id="inputBio" style="width:300px;"><br>
+        <p>경력 사항</p>
+        <textarea id="inputExperience" rows="4" cols="40"></textarea><br><br>
+        <button onclick="nextStep(5)">최종 확인 화면으로 이동</button>
+    </div>
+
+    <div id="step5" class="step">
+        <h3>5. 최종 신청 내용 확인</h3>
+        <div id="summaryArea" style="background:#f9f9f9; padding:15px; border:1px dashed #aaa;"></div>
+        <br>
+        <button onclick="submitApplication()" style="background:green; color:white; padding:10px;">최종 제출하기</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

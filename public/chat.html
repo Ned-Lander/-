@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>전문가 모여라 - 1:1 채팅</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+        .chat-container { background: white; width: 400px; height: 600px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
+        .chat-header { background: #007bff; color: white; padding: 15px; text-align: center; font-weight: bold; position: relative; }
+        .chat-header button { position: absolute; left: 15px; top: 12px; background: transparent; border: none; color: white; cursor: pointer; font-size: 16px; }
+        .chat-messages { flex: 1; padding: 15px; overflow-y: auto; background: #e5ddd5; display: flex; flex-direction: column; gap: 10px; }
+        .message { max-width: 70%; padding: 10px; border-radius: 8px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+        .message.me { align-self: flex-end; background: #dcf8c6; border-bottom-right-radius: 0; }
+        .message.other { align-self: flex-start; background: white; border-bottom-left-radius: 0; }
+        .message-sender { font-size: 11px; color: #555; margin-bottom: 4px; font-weight: bold; }
+        .chat-image { max-width: 100%; border-radius: 6px; display: block; margin-top: 5px; }
+        .chat-input { display: flex; padding: 10px; background: #f0f0f0; align-items: center; }
+        .chat-input input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; outline: none; }
+        .btn-send { padding: 10px 15px; margin-left: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-photo { padding: 10px; margin-right: 10px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <button onclick="goBack()">◀ 나가기</button>
+        1:1 서비스 채팅방
+    </div>
+    <div class="chat-messages" id="messagesArea">
+        </div>
+    <div class="chat-input">
+        <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="uploadImage()">
+        
+        <button class="btn-photo" onclick="document.getElementById('imageInput').click()">사진</button>
+        <input type="text" id="msgInput" placeholder="메시지를 입력하세요..." onkeypress="handleKeyPress(event)">
+        <button class="btn-send" onclick="sendTextMessage()">전송</button>
+    </div>
+</div>
+
+<script>
+    let loggedInUser = null;
+    let currentRoom = null;
+    let lastMessageCount = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedUser = localStorage.getItem('loggedInUser');
+        if (!savedUser) {
+            alert('로그인이 필요합니다.');
+            window.location.href = 'service.html';
+            return;
+        }
+        loggedInUser = JSON.parse(savedUser);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        currentRoom = urlParams.get('room');
+
+        if (!currentRoom) {
+            alert('유효하지 않은 채팅방 주소입니다.');
+            window.location.href = 'service.html';
+            return;
+        }
+
+        loadMessages();
+        setInterval(loadMessages, 1000); 
+    });
+
+    function loadMessages() {
+        fetch(`/api/chats?room=${currentRoom}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.messages.length > lastMessageCount) {
+                    renderMessages(data.messages);
+                    lastMessageCount = data.messages.length;
+                    scrollToBottom();
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+    function renderMessages(messages) {
+        const area = document.getElementById('messagesArea');
+        area.innerHTML = '';
+
+        messages.forEach(msg => {
+            const isMe = msg.senderId === loggedInUser.userId;
+            const div = document.createElement('div');
+            div.className = `message ${isMe ? 'me' : 'other'}`;
+            
+            const senderTag = isMe ? '' : `<div class="message-sender">${msg.senderName}</div>`;
+            
+            // 데이터 타입에 따라 텍스트 또는 이미지 태그 렌더링
+            if (msg.type === 'image') {
+                div.innerHTML = `${senderTag}<img src="${msg.message}" class="chat-image" alt="첨부 사진">`;
+            } else {
+                div.innerHTML = `${senderTag}${msg.message}`;
+            }
+            
+            area.appendChild(div);
+        });
+    }
+
+    // 텍스트 메시지 전송 로직
+    function sendTextMessage() {
+        const input = document.getElementById('msgInput');
+        const text = input.value.trim();
+
+        if (!text) return;
+
+        const payload = {
+            room: currentRoom,
+            senderId: loggedInUser.userId,
+            senderName: loggedInUser.name,
+            type: 'text',
+            message: text
+        };
+
+        fetch('/api/chats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                input.value = ''; 
+                loadMessages(); 
+            }
+        });
+    }
+
+    // 이미지 업로드 및 전송 로직
+    function uploadImage() {
+        const fileInput = document.getElementById('imageInput');
+        const file = fileInput.files[0];
+        
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        // 1. 서버 폴더로 이미지 업로드 진행
+        fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // 2. 업로드 성공 시, 반환된 경로 URL을 채팅 메시지로 전송
+                sendImageMessage(data.imageUrl);
+            } else {
+                alert('사진 업로드에 실패했습니다.');
+            }
+            fileInput.value = ''; // 동일한 파일 다시 선택할 수 있도록 초기화
+        })
+        .catch(err => {
+            console.error(err);
+            alert('사진 처리 중 오류가 발생했습니다.');
+        });
+    }
+
+    // 이미지 경로를 채팅 메시지로 등록
+    function sendImageMessage(imageUrl) {
+        const payload = {
+            room: currentRoom,
+            senderId: loggedInUser.userId,
+            senderName: loggedInUser.name,
+            type: 'image',
+            message: imageUrl
+        };
+
+        fetch('/api/chats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                loadMessages();
+            }
+        });
+    }
+
+    function handleKeyPress(e) {
+        if (e.key === 'Enter') sendTextMessage();
+    }
+
+    function scrollToBottom() {
+        const area = document.getElementById('messagesArea');
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function goBack() {
+        window.location.href = 'service.html';
+    }
+</script>
+
+</body>
+</html>
