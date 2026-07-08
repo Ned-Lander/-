@@ -239,7 +239,9 @@ app.post('/api/request-chat', async (req, res) => {
 
     const requesterName = requester.name;
     const chatRoomId = `room_${Date.now()}`;
-    const chatLink = `http://localhost:3000/chat.html?room=${chatRoomId}`;
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const chatLink = `${protocol}://${host}/chat.html?room=${chatRoomId}`;
 
     try {
         const response = await fetch(APPS_SCRIPT_URL, {
